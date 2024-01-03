@@ -7,157 +7,131 @@ import threading
 import pygame
 import time
 import os
-from CTkListbox import CTkListbox
-from tkinter import ttk
 
-pygame.mixer.init()
+class MusicPlayer:
+    def __init__(self, master):
+        self.master = master
+        self.current_position = 0
+        self.paused = False
+        self.selected_folder_path = ""
 
-current_position = 0
-paused = False
-selected_folder_path = ""
+        pygame.mixer.init()
 
+        self.create_widgets()
 
-def update_progress():
-    global current_position
-    while True:
-        if pygame.mixer.music.get_busy() and not paused:
-            current_position = pygame.mixer.music.get_pos() / 1000
-            pbar['value'] = current_position
-            
-            # Check if the current song has reached its maximum duration
-            if current_position >= pbar['maximum']:
-                stop_music()
-                pbar['value'] = 0
-            
-            window.update()
-        
-        time.sleep(0.1)
+    def create_widgets(self):
+        self.l_music_player = ctk.CTkLabel(self.master, text="Music Player", font=("TkDefaultFont", 30, "bold"))
+        self.l_music_player.pack(pady=10)
 
+        self.btn_select_folder = ctk.CTkButton(self.master, text="Select Music Folder",
+                                               command=self.select_music_folder,
+                                               font=("TkDefaultFont", 18))
+        self.btn_select_folder.pack(pady=20)
 
-# Create a thread to update the progress bar
-pt = threading.Thread(target=update_progress)
-pt.daemon = True
-pt.start()
+        self.lbox = tk.Listbox(self.master, width=50, font=("TkDefaultFont", 16))
+        self.lbox.pack(pady=10)
 
+        self.btn_frame = ctk.CTkFrame(self.master)
+        self.btn_frame.pack(pady=20)
 
-def select_music_folder():
-    global selected_folder_path
-    selected_folder_path = filedialog.askdirectory()
-    if selected_folder_path:
-        lbox.delete(0, tk.END)
-        for file_name in os.listdir(selected_folder_path):
-            if file_name.endswith(".mp3"):
-                lbox.insert(tk.END, file_name)
+        self.btn_previous = ctk.CTkButton(self.btn_frame, text="<", command=self.previous_song,
+                                          width=50, font=("TkDefaultFont", 18))
+        self.btn_previous.pack(side=tk.LEFT, padx=5)
+
+        self.btn_play = ctk.CTkButton(self.btn_frame, text="Play", command=self.play_music, width=50,
+                                      font=("TkDefaultFont", 18))
+        self.btn_play.pack(side=tk.LEFT, padx=5)
+
+        self.btn_pause = ctk.CTkButton(self.btn_frame, text="Pause", command=self.pause_music, width=50,
+                                       font=("TkDefaultFont", 18))
+        self.btn_pause.pack(side=tk.LEFT, padx=5)
+
+        self.btn_next = ctk.CTkButton(self.btn_frame, text=">", command=self.next_song, width=50,
+                                      font=("TkDefaultFont", 18))
+        self.btn_next.pack(side=tk.LEFT, padx=5)
+
+        self.pbar = Progressbar(self.master, length=300, mode="determinate", maximum=100)
+        self.pbar.pack(pady=10)
+
+    def update_progress(self):
+        while True:
+            if pygame.mixer.music.get_busy() and not self.paused:
+                self.current_position = pygame.mixer.music.get_pos() / 1000
+                self.pbar['value'] = self.current_position
                 
-
-def previous_song():
-    if len(lbox.curselection()) > 0:
-        current_index = lbox.curselection()[0]
-        if current_index > 0:
-            lbox.selection_clear(0, tk.END)
-            lbox.selection_set(current_index - 1)
-            play_selected_song()
+                if self.current_position >= self.pbar['maximum']:
+                    self.stop_music()
+                    self.pbar['value'] = 0
+                
+                self.master.update()
             
-            
-def next_song():
-    if len(lbox.curselection()) > 0:
-        current_index = lbox.curselection()[0]
-        if current_index < lbox.size() - 1:
-            lbox.selection_clear(0, tk.END)
-            lbox.selection_set(current_index + 1)
-            play_selected_song()
-            
-            
-def play_music():
-    global paused
-    if paused:
-        pygame.mixer.music.unpause()
-        paused = False
-    else:
-        play_selected_song()
+            time.sleep(0.1)
 
+    def select_music_folder(self):
+        self.selected_folder_path = filedialog.askdirectory()
+        if self.selected_folder_path:
+            self.lbox.delete(0, tk.END)
+            for file_name in os.listdir(self.selected_folder_path):
+                if file_name.endswith(".mp3"):
+                    self.lbox.insert(tk.END, file_name)
 
-def play_selected_song():
-    global current_position, paused
+    def previous_song(self):
+        if len(self.lbox.curselection()) > 0:
+            current_index = self.lbox.curselection()[0]
+            if current_index > 0:
+                self.lbox.selection_clear(0, tk.END)
+                self.lbox.selection_set(current_index - 1)
+                self.play_selected_song()
 
-    if len(lbox.curselection()) > 0:
-        current_index = lbox.curselection()[0]
-        selected_song = lbox.get(current_index)
-        full_path = os.path.join(selected_folder_path, selected_song)
+    def next_song(self):
+        if len(self.lbox.curselection()) > 0:
+            current_index = self.lbox.curselection()[0]
+            if current_index < self.lbox.size() - 1:
+                self.lbox.selection_clear(0, tk.END)
+                self.lbox.selection_set(current_index + 1)
+                self.play_selected_song()
 
-        # Обнуление current_position перед загрузкой новой песни
-        current_position = 0
+    def play_music(self):
+        if self.paused:
+            pygame.mixer.music.unpause()
+            self.paused = False
+        else:
+            self.play_selected_song()
 
-        pygame.mixer.music.load(full_path)
-        pygame.mixer.music.play(start=current_position)
-        paused = False
-        audio = MP3(full_path)
-        song_duration = audio.info.length
-        pbar['maximum'] = song_duration
+    def play_selected_song(self):
+        if len(self.lbox.curselection()) > 0:
+            current_index = self.lbox.curselection()[0]
+            selected_song = self.lbox.get(current_index)
+            full_path = os.path.join(self.selected_folder_path, selected_song)
 
-        
+            self.current_position = 0
 
-def pause_music():
-    global paused
-    pygame.mixer.music.pause()
-    paused = True
-    
+            pygame.mixer.music.load(full_path)
+            pygame.mixer.music.play(start=self.current_position)
+            self.paused = False
+            audio = MP3(full_path)
+            song_duration = audio.info.length
+            self.pbar['maximum'] = song_duration
 
-def stop_music():
-    global paused
-    pygame.mixer.music.stop()
-    paused = False
+    def pause_music(self):
+        pygame.mixer.music.pause()
+        self.paused = True
 
+    def stop_music(self):
+        pygame.mixer.music.stop()
+        self.paused = False
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("green")
+if __name__ == "__main__":
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("green")
+    root = ctk.CTk()
+    root.title("Music Player")
+    root.geometry("600x550")
 
-# Create the main window   
-window = ctk.CTk()
-window.title("Music Player")
-window.geometry("600x550")
+    player = MusicPlayer(root)
 
-# Create a label for the music player title
-l_music_player = ctk.CTkLabel(window, text="Music Player", font=("TkDefaultFont", 30, "bold"))
-l_music_player.pack(pady=10)
+    progress_thread = threading.Thread(target=player.update_progress)
+    progress_thread.daemon = True
+    progress_thread.start()
 
-# Create a button to select the music folder
-btn_select_folder = ctk.CTkButton(window, text="Select Music Folder",
-                                  command=select_music_folder,
-                                  font=("TkDefaultFont", 18))
-
-btn_select_folder.pack(pady=20)
-
-# Create a listbox to display the available songs
-lbox = tk.Listbox(window, width=50, font=("TkDefaultFont", 16))
-lbox.pack(pady=10)
-
-# Create a frame to hold the control buttons
-btn_frame = ctk.CTkFrame(window)
-btn_frame.pack(pady=20)
-
-# Create a button to go to the previous song
-btn_previous = ctk.CTkButton(btn_frame, text="<", command=previous_song,
-                            width=50, font=("TkDefaultFont", 18))
-btn_previous.pack(side=tk.LEFT, padx=5)
-
-# Create a button to play the music
-btn_play = ctk.CTkButton(btn_frame, text="Play", command=play_music, width=50,
-                         font=("TkDefaultFont", 18))
-btn_play.pack(side=tk.LEFT, padx=5)
-
-# Create a button to pause the music
-btn_pause = ctk.CTkButton(btn_frame, text="Pause", command=pause_music, width=50,
-                          font=("TkDefaultFont", 18))
-btn_pause.pack(side=tk.LEFT, padx=5)
-
-# Create a button to go to the next song
-btn_next = ctk.CTkButton(btn_frame, text=">", command=next_song, width=50,
-                         font=("TkDefaultFont", 18))
-btn_next.pack(side=tk.LEFT, padx=5)
-
-# Create a progress bar to indicate the current song's progress
-pbar = Progressbar(window, length=300, mode="determinate", maximum=100)
-pbar.pack(pady=10)
-
-window.mainloop()
+    root.mainloop()
