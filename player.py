@@ -19,6 +19,7 @@ class MusicPlayer:
 
         self.create_widgets()
 
+
     def create_widgets(self):
         self.l_music_player = ctk.CTkLabel(self.master, text="Music Player", font=("TkDefaultFont", 30, "bold"))
         self.l_music_player.pack(pady=10)
@@ -49,23 +50,41 @@ class MusicPlayer:
         self.btn_next = ctk.CTkButton(self.btn_frame, text=">", command=self.next_song, width=50,
                                       font=("TkDefaultFont", 18))
         self.btn_next.pack(side=tk.LEFT, padx=5)
+        
+        self.progress_frame = ctk.CTkFrame(self.master)
+        self.progress_frame.pack(pady=10)
 
-        self.pbar = Progressbar(self.master, length=300, mode="determinate", maximum=100)
-        self.pbar.pack(pady=10)
+        self.lbl_current_time = ctk.CTkLabel(self.progress_frame, text="0:00", font=("TkDefaultFont", 12))
+        self.lbl_current_time.pack(side=tk.LEFT, padx=10)
+
+        self.pbar = Progressbar(self.progress_frame, length=300, mode="determinate", maximum=100)
+        self.pbar.pack(side=tk.LEFT, padx=10)
+
+        self.lbl_total_time = ctk.CTkLabel(self.progress_frame, text="0:00", font=("TkDefaultFont", 12))
+        self.lbl_total_time.pack(side=tk.LEFT, padx=10)
+
 
     def update_progress(self):
         while True:
             if pygame.mixer.music.get_busy() and not self.paused:
                 self.current_position = pygame.mixer.music.get_pos() / 1000
                 self.pbar['value'] = self.current_position
-                
+
+                current_time_str = time.strftime('%M:%S', time.gmtime(self.current_position))
+                self.lbl_current_time.configure(text=current_time_str)
+
                 if self.current_position >= self.pbar['maximum']:
                     self.stop_music()
                     self.pbar['value'] = 0
-                
+
+                audio = MP3(os.path.join(self.selected_folder_path, self.lbox.get(tk.ACTIVE)))
+                # total_time_str = time.strftime('%M:%S', time.gmtime(audio.info.length))
+                # self.lbl_total_time.configure(text=total_time_str)
+
                 self.master.update()
-            
-            time.sleep(0.1)
+
+        time.sleep(0.1)
+
 
     def select_music_folder(self):
         self.selected_folder_path = filedialog.askdirectory()
@@ -75,13 +94,6 @@ class MusicPlayer:
                 if file_name.endswith(".mp3"):
                     self.lbox.insert(tk.END, file_name)
 
-    def previous_song(self):
-        if len(self.lbox.curselection()) > 0:
-            current_index = self.lbox.curselection()[0]
-            if current_index > 0:
-                self.lbox.selection_clear(0, tk.END)
-                self.lbox.selection_set(current_index - 1)
-                self.play_selected_song()
 
     def next_song(self):
         if len(self.lbox.curselection()) > 0:
@@ -90,6 +102,35 @@ class MusicPlayer:
                 self.lbox.selection_clear(0, tk.END)
                 self.lbox.selection_set(current_index + 1)
                 self.play_selected_song()
+                self.update_labels()  # Добавлен вызов для обновления меток
+
+
+    def previous_song(self):
+        if len(self.lbox.curselection()) > 0:
+            current_index = self.lbox.curselection()[0]
+            if current_index > 0:
+                self.lbox.selection_clear(0, tk.END)
+                self.lbox.selection_set(current_index - 1)
+                self.play_selected_song()
+                self.update_labels()  # Добавлен вызов для обновления меток
+                
+                
+    def update_labels(self):
+        if len(self.lbox.curselection()) > 0:
+            current_index = self.lbox.curselection()[0]
+            selected_song = self.lbox.get(current_index)
+            full_path = os.path.join(self.selected_folder_path, selected_song)
+
+            audio = MP3(full_path)
+            song_duration = audio.info.length
+
+            # Обновление меток
+            current_time_str = time.strftime('%M:%S', time.gmtime(self.current_position))
+            total_time_str = time.strftime('%M:%S', time.gmtime(song_duration))
+
+            self.lbl_current_time.configure(text=current_time_str)
+            self.lbl_total_time.configure(text=total_time_str)
+
 
     def play_music(self):
         if self.paused:
@@ -97,6 +138,7 @@ class MusicPlayer:
             self.paused = False
         else:
             self.play_selected_song()
+
 
     def play_selected_song(self):
         if len(self.lbox.curselection()) > 0:
@@ -112,14 +154,20 @@ class MusicPlayer:
             audio = MP3(full_path)
             song_duration = audio.info.length
             self.pbar['maximum'] = song_duration
+        
+            total_time_str = time.strftime('%M:%S', time.gmtime(song_duration))
+            self.lbl_total_time.configure(text=total_time_str)
+
 
     def pause_music(self):
         pygame.mixer.music.pause()
         self.paused = True
 
+
     def stop_music(self):
         pygame.mixer.music.stop()
         self.paused = False
+
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")
@@ -127,6 +175,7 @@ if __name__ == "__main__":
     root = ctk.CTk()
     root.title("Music Player")
     root.geometry("600x550")
+    root.resizable(False, False)
 
     player = MusicPlayer(root)
 
