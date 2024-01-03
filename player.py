@@ -7,6 +7,8 @@ import threading
 import pygame
 import time
 import os
+from CTkListbox import CTkListbox
+from tkinter import ttk
 
 pygame.mixer.init()
 
@@ -77,17 +79,22 @@ def play_music():
 
 def play_selected_song():
     global current_position, paused
-    
+
     if len(lbox.curselection()) > 0:
         current_index = lbox.curselection()[0]
         selected_song = lbox.get(current_index)
         full_path = os.path.join(selected_folder_path, selected_song)
+
+        # Обнуление current_position перед загрузкой новой песни
+        current_position = 0
+
         pygame.mixer.music.load(full_path)
         pygame.mixer.music.play(start=current_position)
         paused = False
         audio = MP3(full_path)
         song_duration = audio.info.length
         pbar['maximum'] = song_duration
+
         
 
 def pause_music():
@@ -102,13 +109,16 @@ def stop_music():
     paused = False
 
 
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("green")
+
 # Create the main window   
-window = tk.Tk()
+window = ctk.CTk()
 window.title("Music Player")
-window.geometry("600x500")
+window.geometry("600x550")
 
 # Create a label for the music player title
-l_music_player = tk.Label(window, text="Music Player", font=("TkDefaultFont", 30, "bold"))
+l_music_player = ctk.CTkLabel(window, text="Music Player", font=("TkDefaultFont", 30, "bold"))
 l_music_player.pack(pady=10)
 
 # Create a button to select the music folder
@@ -123,7 +133,7 @@ lbox = tk.Listbox(window, width=50, font=("TkDefaultFont", 16))
 lbox.pack(pady=10)
 
 # Create a frame to hold the control buttons
-btn_frame = tk.Frame(window)
+btn_frame = ctk.CTkFrame(window)
 btn_frame.pack(pady=20)
 
 # Create a button to go to the previous song
@@ -147,7 +157,7 @@ btn_next = ctk.CTkButton(btn_frame, text=">", command=next_song, width=50,
 btn_next.pack(side=tk.LEFT, padx=5)
 
 # Create a progress bar to indicate the current song's progress
-pbar = Progressbar(window, length=300, mode="determinate")
+pbar = Progressbar(window, length=300, mode="determinate", maximum=100)
 pbar.pack(pady=10)
 
 window.mainloop()
