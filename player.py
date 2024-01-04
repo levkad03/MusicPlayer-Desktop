@@ -74,12 +74,10 @@ class MusicPlayer:
                 self.lbl_current_time.configure(text=current_time_str)
 
                 if self.current_position >= self.pbar['maximum']:
-                    self.stop_music()
-                    self.pbar['value'] = 0
+                    self.next_song()
+                    continue
 
                 audio = MP3(os.path.join(self.selected_folder_path, self.lbox.get(tk.ACTIVE)))
-                # total_time_str = time.strftime('%M:%S', time.gmtime(audio.info.length))
-                # self.lbl_total_time.configure(text=total_time_str)
 
                 self.master.update()
 
