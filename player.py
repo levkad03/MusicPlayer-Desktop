@@ -62,6 +62,22 @@ class MusicPlayer:
 
         self.lbl_total_time = ctk.CTkLabel(self.progress_frame, text="0:00", font=("TkDefaultFont", 12))
         self.lbl_total_time.pack(side=tk.LEFT, padx=10)
+        
+        self.volume_frame = ctk.CTkFrame(self.master)
+        self.volume_frame.pack(pady=10)
+
+        self.lbl_volume = ctk.CTkLabel(self.volume_frame, text="Volume:", font=("TkDefaultFont", 12))
+        self.lbl_volume.pack(side=tk.LEFT, padx=10)
+
+        self.volume_scale = tk.Scale(self.volume_frame, from_=0, to=100, orient=tk.HORIZONTAL,
+                                command=self.update_volume, length=200)
+        self.volume_scale.set(50)  # Устанавливаем начальное значение громкости
+        self.volume_scale.pack(side=tk.LEFT, padx=10)
+        
+    
+    def update_volume(self, value):
+        volume = int(value)
+        pygame.mixer.music.set_volume(volume / 100.0)
 
 
     def update_progress(self):
@@ -155,6 +171,9 @@ class MusicPlayer:
         
             total_time_str = time.strftime('%M:%S', time.gmtime(song_duration))
             self.lbl_total_time.configure(text=total_time_str)
+            
+            initial_volume = self.volume_scale.get()
+            pygame.mixer.music.set_volume(initial_volume / 100.0)
 
 
     def pause_music(self):
@@ -172,7 +191,7 @@ if __name__ == "__main__":
     ctk.set_default_color_theme("green")
     root = ctk.CTk()
     root.title("Music Player")
-    root.geometry("600x550")
+    root.geometry("600x600")
     root.resizable(False, False)
 
     player = MusicPlayer(root)
