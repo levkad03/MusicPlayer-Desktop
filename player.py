@@ -68,9 +68,8 @@ class MusicPlayer:
 
         self.lbl_volume = ctk.CTkLabel(self.volume_frame, text="Volume:", font=("TkDefaultFont", 12))
         self.lbl_volume.pack(side=tk.LEFT, padx=10)
-
-        self.volume_scale = tk.Scale(self.volume_frame, from_=0, to=100, orient=tk.HORIZONTAL,
-                                command=self.update_volume, length=200)
+        
+        self.volume_scale = ctk.CTkSlider(self.volume_frame, from_=0, to=100, command=self.update_volume, orientation='horizontal')
         self.volume_scale.set(50)  # Устанавливаем начальное значение громкости
         self.volume_scale.pack(side=tk.LEFT, padx=10)
         
@@ -188,7 +187,7 @@ class MusicPlayer:
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("green")
+    ctk.set_default_color_theme("blue")
     root = ctk.CTk()
     root.title("Music Player")
     root.geometry("600x600")
